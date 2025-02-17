@@ -7,6 +7,9 @@ __pycache__/
 *.so
 
 trino-data/
+minio-data/
+dremio-data/
+trino-data/
 
 # Distribution / packaging
 .Python
