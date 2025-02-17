@@ -1,0 +1,1 @@
+{"tablename":"search_document_id","keyFormat":{"type":3},"valueFormat":{"type":4,"classNameParam":"com.dremio.service.search.SearchDocumentIdProto$SearchDocumentId"},"versionExtractorClassName":""}

@@ -1,0 +1,99 @@
+version: '3.8'
+
+services:
+  # Nessie Catalog Server Using In-Memory Store
+  nessie:
+    image: projectnessie/nessie:latest
+    container_name: nessie
+    networks:
+      - iceberg
+    ports:
+      - 19120:19120
+    environment:
+      - QUARKUS_OPENTELEMETRY_ENABLED=false
+      - QUARKUS_OIDC_ENABLED=false
+
+  # Minio Storage Server
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    environment:
+      - MINIO_ROOT_USER=admin
+      - MINIO_ROOT_PASSWORD=password
+      - MINIO_DOMAIN=storage
+      - MINIO_REGION_NAME=us-east-1
+      - MINIO_REGION=us-east-1
+    networks:
+      - iceberg
+    ports:
+      - 9001:9001
+      - 9000:9000
+    volumes:
+      - ./minio-data:/data
+    command: ["server", "/data", "--console-address", ":9001"]
+
+  # Dremio
+  dremio:
+    platform: linux/x86_64
+    image: dremio/dremio-oss:latest
+    ports:
+      - 9047:9047
+      - 31010:31010
+      - 32010:32010
+    container_name: dremio
+    environment:
+      - DREMIO_JAVA_SERVER_EXTRA_OPTS=-Dpaths.dist=file:///opt/dremio/data/dist
+      - DREMIO_ADMIN_USER=admin
+      - DREMIO_ADMIN_PASSWORD=password
+    networks:
+      - iceberg
+    volumes:
+      - ./dremio-data:/opt/dremio/data
+
+  # Trino
+  trino:
+    image: trinodb/trino:latest
+    container_name: trino
+    networks:
+      - iceberg
+    ports:
+      - 8080:8080
+    environment:
+      - JAVA_TOOL_OPTIONS=-Duser.timezone=UTC
+    volumes:
+      - ./trino-config:/etc/trino
+      - ./trino-data:/var/trino/data
+
+  # Superset
+  superset:
+    image: apache/superset:latest
+    container_name: superset
+    environment:
+      - SUPERSET_LOAD_EXAMPLES=yes
+      - SUPERSET_SECRET_KEY=1234
+      - SUPERSET_SQLALCHEMY_DATABASE_URI=sqlite:////var/lib/superset/superset.db
+      - SUPERSET_WEBSERVER_PORT=8088
+      - ADMIN_USERNAME=admin
+      - ADMIN_PASSWORD=admin
+    networks:
+      - iceberg
+    ports:
+      - 8088:8088
+    volumes:
+      - ./superset:/var/lib/superset
+      - ./superset_config/superset_config.py:/app/pythonpath/superset_config.py
+      - ./superset/requirements.txt:/app/pythonpath/requirements.txt
+    command:
+      - sh
+      - -c
+      - |
+        pip install -r /app/pythonpath/requirements.txt &&
+        superset db upgrade &&
+        superset init &&
+        if [ "$(superset fab list-users | grep -c admin)" -eq 0 ]; then
+          superset fab create-admin --username admin --firstname Admin --lastname User --email admin@example.com --password admin;
+        fi &&
+        superset run -h 0.0.0.0 -p 8088
+
+networks:
+  iceberg:
