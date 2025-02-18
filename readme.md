@@ -47,6 +47,8 @@ I don't think that you would need to populate the data to reproduce the issue.
 java.io.UncheckedIOException: com.fasterxml.jackson.databind.exc.MismatchedInputException: No content to map due to end-of-input
  at [Source: REDACTED (`StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION` disabled); line: 1]
 
+ ### It doesn't look like the nessie endpoints (api/v1, api/v2, /iceberg) are active
+
  ## Loading the data
 
  This is also an issue
